@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Search, Eye, Edit, Trash2, Download, FileText } from 'lucide-react'; 
+import { Plus, Search, Eye, Edit, Trash2, Download, FileText, User, Syringe } from 'lucide-react'; 
 import { useData, type Patient } from '../../contexts/DataContext';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -29,12 +29,131 @@ import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner@2.0.3';
 import { generateMedicalRecordPDF } from '../../utils/pdfGenerator';
 
+// --- DEFINISI TIPE MEDICAL RECORD ---
+type MedicalRecord = {
+  id: string;
+  patientId: string;
+  date: string;
+  chiefComplaint: string;
+  diagnosis: string;
+  medication: string;
+  doctor: string;       
+  action: string;       
+  isAdmitted?: boolean;
+};
+
+// --- FUNGSI HELPER UNTUK MOCK DATA SEMUA PASIEN ---
+const createMockRecords = (patientId: string): MedicalRecord[] => {
+    // Riwayat Spesifik untuk Ahmad Fauzi (5 Riwayat Lengkap)
+    if (patientId === 'MR-2024-001-ID-Ahmad') {
+        return [
+             { // Riwayat 1 (Terbaru)
+                id: 'rec-005', patientId, date: '2026-03-10', chiefComplaint: 'Luka robek pada kaki akibat terjatuh saat berolahraga.', diagnosis: 'Vulnus Laceratum', medication: 'Anti-tetanus, Paracetamol', doctor: 'Dr. Malikusa Saleh', action: 'Jahit luka (5 jahitan), Pembersihan luka', isAdmitted: false,
+            },
+             { // Riwayat 2
+                id: 'rec-004', patientId, date: '2026-01-25', chiefComplaint: 'Batuk berdahak dan sesak napas selama seminggu terakhir.', diagnosis: 'Bronkitis Akut', medication: 'Obat pengencer dahak, Antibiotik Azithromycin', doctor: 'Dr. Sinta Wijaya, Sp.PD', action: 'Rontgen Thorax, Nebulizer', isAdmitted: false,
+            },
+             { // Riwayat 3
+                id: 'rec-003', patientId, date: '2025-11-20', chiefComplaint: 'Nyeri tenggorokan dan batuk kering selama 3 hari.', diagnosis: 'Faringitis Akut', medication: 'Amoxicillin 500mg (3x1), Obat batuk sirup (3x1)', doctor: 'Dr. Malikusa Saleh', action: 'Pemeriksaan fisik tenggorokan, Resep obat', isAdmitted: false,
+            },
+            { // Riwayat 4 (Rawat Inap)
+                id: 'rec-002', patientId, date: '2025-09-01', chiefComplaint: 'Demam tinggi mendadak selama 5 hari, disertai bintik merah dan mimisan.', diagnosis: 'Demam Berdarah Dengue (DBD) Grade I', medication: 'Infus Ringer Laktat, Paracetamol, Monitoring trombosit', doctor: 'Dr. Sinta Wijaya, Sp.PD', action: 'Pemasangan Infus, Cek darah rutin harian, Rawat Inap', isAdmitted: true,
+            },
+            { // Riwayat 5 (Paling Lama - Kontrol Kronis)
+                id: 'rec-001', patientId, date: '2025-03-25', chiefComplaint: 'Kontrol rutin untuk tekanan darah, pusing ringan di pagi hari.', diagnosis: 'Hipertensi Primer', medication: 'Amlodipine 5mg (1x1), Diet rendah garam', doctor: 'Dr. Malikusa Saleh', action: 'Pengukuran Tensi, Konsultasi gizi', isAdmitted: false,
+            },
+        ];
+    } 
+    
+    // Riwayat Spesifik untuk Siti Nurhaliza (5 Riwayat Lengkap)
+    if (patientId === 'MR-2024-002-ID-Siti') {
+        return [
+            { // Riwayat 1 (Terbaru)
+                id: 'rec-105', patientId, date: '2026-02-01', chiefComplaint: 'Mata bengkak dan sakit, penglihatan kabur.', diagnosis: 'Glaukoma Akut', medication: 'Tetes mata Pilocarpine', doctor: 'Dr. Ahmad Fauzi, Sp.M', action: 'Pemeriksaan tekanan bola mata, Rujukan ke spesialis', isAdmitted: false,
+            },
+            { // Riwayat 2
+                id: 'rec-104', patientId, date: '2025-12-15', chiefComplaint: 'Lemas dan pucat, hasil lab menunjukkan kadar hemoglobin rendah.', diagnosis: 'Anemia Defisiensi Besi', medication: 'Suplemen zat besi, Vitamin B12', doctor: 'Dr. Nurul Hikmah', action: 'Pemeriksaan darah lengkap, Konsultasi nutrisi', isAdmitted: false,
+            },
+            { // Riwayat 3
+                id: 'rec-103', patientId, date: '2025-11-05', chiefComplaint: 'Nyeri perut bagian bawah dan sering buang air kecil.', diagnosis: 'Infeksi Saluran Kemih', medication: 'Ciprofloxacin 500mg (2x1), Perbanyak minum air putih', doctor: 'Dr. Nurul Hikmah', action: 'Pemeriksaan Urin, Resep antibiotik', isAdmitted: false,
+            },
+            { // Riwayat 4
+                id: 'rec-102', patientId, date: '2025-08-10', chiefComplaint: 'Nyeri punggung bawah setelah mengangkat barang berat.', diagnosis: 'Strain Lumbar', medication: 'Obat pelemas otot, fisioterapi', doctor: 'Dr. Budi Santoso', action: 'Pemeriksaan fisik, Rujukan fisioterapi', isAdmitted: false,
+            },
+            { // Riwayat 5 (Paling Lama)
+                id: 'rec-101', patientId, date: '2025-03-20', chiefComplaint: 'Mata merah, bengkak, dan gatal.', diagnosis: 'Konjungtivitis Viral', medication: 'Tetes mata antivirus', doctor: 'Dr. Nurul Hikmah', action: 'Pemeriksaan mata, Resep obat', isAdmitted: false,
+            },
+        ];
+    }
+    
+    // Riwayat default (General Check Up) untuk pasien lainnya (3 Riwayat)
+    return [
+        { // Riwayat 1 (Terbaru)
+            id: `rec-${patientId}-003`,
+            patientId,
+            date: '2025-10-15',
+            chiefComplaint: 'Luka memar ringan di lengan akibat terbentur.',
+            diagnosis: 'Kontusio Ringan',
+            medication: 'Krim pereda nyeri',
+            doctor: 'Dr. Umum IGD',
+            action: 'Kompres dingin, Resep obat luar',
+            isAdmitted: false,
+        },
+        { // Riwayat 2
+            id: `rec-${patientId}-002`,
+            patientId,
+            date: '2025-05-01',
+            chiefComplaint: 'Vaksinasi rutin Influenza.',
+            diagnosis: 'Imunisasi Influenza',
+            medication: 'Vaksin Influenza',
+            doctor: 'Suster Rika',
+            action: 'Injeksi, Observasi 15 menit',
+            isAdmitted: false,
+        },
+        { // Riwayat 3 (Paling Lama)
+            id: `rec-${patientId}-001`,
+            patientId,
+            date: '2025-01-01',
+            chiefComplaint: 'Pemeriksaan kesehatan rutin tahunan.',
+            diagnosis: 'Sehat / General Check Up',
+            medication: 'Suplemen vitamin',
+            doctor: 'Dr. Umum IGD',
+            action: 'Pengambilan sampel darah, Timbang berat badan',
+            isAdmitted: false,
+        }
+    ];
+};
+// --- END MOCK DATA HELPER ---
+
+
 export default function PatientsPage() {
-  const { patients, addPatient, updatePatient, deletePatient, medicalRecords } = useData();
+  const dataContext = useData();
+  
+  // --- START PENYESUAIAN SEMENTARA UNTUK DEMO SEMUA PASIEN ---
+  
+  const patients = dataContext.patients.map(p => {
+    if (p.medicalRecordNumber === 'MR-2024-001') {
+        return { ...p, id: 'MR-2024-001-ID-Ahmad' };
+    }
+    if (p.medicalRecordNumber === 'MR-2024-002') {
+        return { ...p, id: 'MR-2024-002-ID-Siti' };
+    }
+    return { ...p, id: p.id || p.medicalRecordNumber };
+  });
+  
+  const mockRecordsForDemo = patients.flatMap(p => createMockRecords(p.id));
+  const medicalRecords = [...(dataContext.medicalRecords ?? []), ...mockRecordsForDemo];
+  
+  const { addPatient, updatePatient, deletePatient } = dataContext; 
+  
+  // --- END PENYESUAIAN SEMENTARA ---
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
+  const [isAddRecordDialogOpen, setIsAddRecordDialogOpen] = useState(false); 
+  const [viewingRecord, setViewingRecord] = useState<MedicalRecord | null>(null); 
 
   const [formData, setFormData] = useState({
     name: '',
@@ -47,12 +166,23 @@ export default function PatientsPage() {
     bloodType: '',
   });
 
+  const [newRecordData, setNewRecordData] = useState({
+    date: new Date().toISOString().substring(0, 10),
+    chiefComplaint: '',
+    diagnosis: '',
+    medication: '',
+    doctor: '',           
+    action: '',             
+    isAdmitted: false,
+  });
+
+
   const filteredPatients = patients.filter(patient =>
     patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     patient.medicalRecordNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
     patient.phone.includes(searchQuery)
   );
-
+  
   const handleAddPatient = () => {
     if (!formData.name || !formData.phone) {
       toast.error('Nama dan nomor telepon harus diisi');
@@ -87,8 +217,38 @@ export default function PatientsPage() {
       toast.success('Pasien berhasil dihapus');
     }
   };
+  
+  const addMedicalRecord = (record: MedicalRecord) => {
+      // Di aplikasi sesungguhnya, Anda akan memanggil fungsi dari DataContext di sini
+      toast.success('Riwayat medis baru berhasil ditambahkan (Mock)');
+  };
 
-  // --- FUNGSI UNDUH JSON (METODE PALING PRIMITIF DENGAN SETTIMEOUT & TANPA TOAST) ---
+  const handleAddNewMedicalRecord = () => {
+    if (!viewingPatient || !newRecordData.chiefComplaint || !newRecordData.diagnosis) {
+        toast.error('Keluhan utama dan diagnosis harus diisi');
+        return;
+    }
+
+    const newRecord: MedicalRecord = {
+        id: `rec-${Date.now()}`,
+        patientId: viewingPatient.id,
+        ...newRecordData,
+    };
+
+    addMedicalRecord(newRecord); 
+    setIsAddRecordDialogOpen(false);
+    setNewRecordData({
+        date: new Date().toISOString().substring(0, 10),
+        chiefComplaint: '',
+        diagnosis: '',
+        medication: '',
+        doctor: '',          
+        action: '',            
+        isAdmitted: false,
+    });
+  };
+  
+
   const handleDownloadMedicalRecordJson = (patient: Patient) => {
     const patientRecords = medicalRecords.filter(r => r.patientId === patient.id);
     
@@ -114,32 +274,25 @@ export default function PatientsPage() {
       
       const fileName = `${patient.name.replace(/\s/g, '_')}_RiwayatMedis.json`;
       
-      // Buat elemen <a>
       const link = document.createElement('a');
       link.href = dataUri;
       link.download = fileName;
       
-      // Metode andal: Bungkus dalam setTimeout untuk memisah dari event klik React
       setTimeout(() => {
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
       }, 0); 
-      
-      // toast.success('Rekam medis berhasil diunduh (JSON)'); // DIHAPUS SEMENTARA
     } catch (error) {
         console.error("Gagal mengunduh file JSON:", error);
         toast.error('Gagal membuat file unduhan JSON.');
     }
   };
-  // --- END FUNGSI UNDUH JSON ---
+  
 
-  // Fungsi unduh PDF (TETAP)
   const handleDownloadMedicalRecord = async (patient: Patient) => {
     const patientRecords = medicalRecords.filter(r => r.patientId === patient.id);
-    // Masalah pada tombol PDF kemungkinan ada di dalam fungsi generateMedicalRecordPDF ini.
     await generateMedicalRecordPDF(patient, patientRecords); 
-    // toast.success('Rekam medis berhasil diunduh (PDF)'); // DIHAPUS SEMENTARA
   };
 
   const resetForm = () => {
@@ -483,13 +636,15 @@ export default function PatientsPage() {
       </Dialog>
 
       {/* View Patient Dialog */}
-      <Dialog open={!!viewingPatient} onOpenChange={() => setViewingPatient(null)}>
-        <DialogContent className="max-w-3xl">
+      <Dialog open={!!viewingPatient} onOpenChange={() => { setViewingPatient(null); setViewingRecord(null); }}>
+        {/* FIX SCROLL DIALOG UTAMA DI SINI */}
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto"> 
           <DialogHeader>
             <DialogTitle>Detail Pasien</DialogTitle>
           </DialogHeader>
           {viewingPatient && (
             <div className="space-y-6">
+              {/* Data Demografi Pasien */}
               <div className="flex items-start gap-6">
                 <Avatar className="w-24 h-24">
                   <AvatarImage src={viewingPatient.avatar} />
@@ -517,7 +672,7 @@ export default function PatientsPage() {
                   </div>
                 </div>
               </div>
-
+              {/* Kontak */}
               <div className="border-t pt-4">
                 <h4 className="mb-3">Kontak</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -536,11 +691,13 @@ export default function PatientsPage() {
                 </div>
               </div>
 
+              {/* RIWAYAT MEDIS (LIST) */}
               <div className="border-t pt-4">
+                {/* BLOK INI SEKARANG HANYA BERISI HEADING DAN TOMBOL-TOMBOL DI SAMPINGNYA */}
                 <div className="flex items-center justify-between mb-3">
                   <h4>Riwayat Medis</h4>
-                  <div className="flex gap-2">
-                    {/* TOMBOL UNDUH JSON DI DIALOG */}
+                  <div className="flex gap-2 items-center"> {/* Tambahkan items-center untuk alignment vertikal */}
+                    {/* Tombol Unduh JSON */}
                     <Button
                       size="sm"
                       onClick={() => handleDownloadMedicalRecordJson(viewingPatient)}
@@ -560,16 +717,219 @@ export default function PatientsPage() {
                       <Download className="w-4 h-4" />
                       Unduh PDF
                     </Button>
+                    
+                    {/* TOMBOL TAMBAH RIWAYAT BARU (IKON KECIL) */}
+                    <Button
+                      size="icon" // Menggunakan size="icon"
+                      onClick={() => setIsAddRecordDialogOpen(true)} 
+                      variant="default"
+                      className="bg-green-600 hover:bg-green-700 w-9 h-9 flex-shrink-0" // Dibuat lebih kecil dan ikon
+                      title="Tambah Riwayat Baru"
+                    >
+                      <Plus className="w-5 h-5" />
+                    </Button>
                   </div>
                 </div>
-                <div className="bg-muted rounded-lg p-4">
-                  <p className="text-sm text-muted-foreground text-center">
-                    Belum ada riwayat medis
-                  </p>
-                </div>
+                
+                {(() => {
+                  const patientRecords = medicalRecords
+                    .filter(r => r.patientId === viewingPatient.id)
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                  if (patientRecords.length === 0) {
+                    return (
+                      <div className="bg-muted rounded-lg p-4">
+                        <p className="text-sm text-muted-foreground text-center">
+                          Belum ada riwayat medis
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="max-h-[20rem] overflow-y-auto"> 
+                        <div className="space-y-3 pr-2">
+                            {patientRecords.map((record, index) => (
+                                <Card key={record.id} className="shadow-none border-l-4 border-primary/70">
+                                  <CardContent className="p-3 flex justify-between items-center">
+                                    <div className="flex-1 space-y-1">
+                                        <h5 className="font-semibold text-primary">
+                                            {record.diagnosis || 'Kunjungan'}
+                                        </h5>
+                                        <p className="text-xs text-muted-foreground">
+                                            {record.chiefComplaint.substring(0, 50)}
+                                            {record.chiefComplaint.length > 50 ? '...' : ''}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="secondary" className="bg-primary/10 text-primary flex-shrink-0 text-xs">
+                                            {new Date(record.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                        </Badge>
+                                        {/* TOMBOL MATA UNTUK LIHAT DETAIL RIWAYAT SPESIFIK */}
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => setViewingRecord(record)}
+                                            className="text-gray-500 hover:text-primary p-0 h-8 w-8"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))}
+                        </div>
+                    </div>
+                  );
+                })()}
+                {/* --- AKHIR LOGIKA RIWAYAT MEDIS --- */}
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add New Medical Record Dialog (Memastikan ada tombol SIMPAN) */}
+      <Dialog open={isAddRecordDialogOpen} onOpenChange={setIsAddRecordDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Tambah Riwayat Medis</DialogTitle>
+            <DialogDescription>
+              Catat kunjungan atau perawatan baru untuk pasien **{viewingPatient?.name}**.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <Label htmlFor="record-date">Tanggal Kunjungan</Label>
+                    <Input
+                        id="record-date"
+                        type="date"
+                        value={newRecordData.date}
+                        onChange={(e) => setNewRecordData({ ...newRecordData, date: e.target.value })}
+                    />
+                </div>
+                <div>
+                    <Label htmlFor="doctor">Dokter Penanggung Jawab</Label>
+                    <Input
+                        id="doctor"
+                        placeholder="Contoh: Dr. Malikusa Saleh"
+                        value={newRecordData.doctor}
+                        onChange={(e) => setNewRecordData({ ...newRecordData, doctor: e.target.value })}
+                    />
+                </div>
+            </div>
+            <div>
+              <Label htmlFor="chief-complaint">Keluhan Utama *</Label>
+              <Input
+                id="chief-complaint"
+                value={newRecordData.chiefComplaint}
+                onChange={(e) => setNewRecordData({ ...newRecordData, chiefComplaint: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="diagnosis">Diagnosis *</Label>
+              <Input
+                id="diagnosis"
+                value={newRecordData.diagnosis}
+                onChange={(e) => setNewRecordData({ ...newRecordData, diagnosis: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="medication">Obat</Label>
+              <Input
+                id="medication"
+                placeholder="Contoh: Paracetamol 500mg"
+                value={newRecordData.medication}
+                onChange={(e) => setNewRecordData({ ...newRecordData, medication: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="action">Tindakan/Prosedur</Label>
+              <Input
+                id="action"
+                placeholder="Contoh: Pemasangan Infus, Rujukan"
+                value={newRecordData.action}
+                onChange={(e) => setNewRecordData({ ...newRecordData, action: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                id="isAdmitted"
+                type="checkbox"
+                checked={newRecordData.isAdmitted}
+                onChange={(e) => setNewRecordData({ ...newRecordData, isAdmitted: e.target.checked })}
+                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
+              />
+              <Label htmlFor="isAdmitted" className="font-medium">Pasien Rawat Inap</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            {/* TOMBOL BATAL */}
+            <Button variant="outline" onClick={() => setIsAddRecordDialogOpen(false)}>
+              Batal
+            </Button>
+            {/* TOMBOL SIMPAN (Sudah terhubung ke fungsi simpan handleAddNewMedicalRecord) */}
+            <Button onClick={handleAddNewMedicalRecord} className="bg-green-600 hover:bg-green-700">
+              Simpan Riwayat
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* View Medical Record Detail Dialog */}
+      <Dialog open={!!viewingRecord} onOpenChange={() => setViewingRecord(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Detail Riwayat Medis</DialogTitle>
+            <DialogDescription>
+              Informasi lengkap tentang kunjungan pada tanggal {viewingRecord ? new Date(viewingRecord.date).toLocaleDateString('id-ID') : ''}.
+            </DialogDescription>
+          </DialogHeader>
+          {viewingRecord && (
+            <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between pb-2 border-b">
+                    <h3 className="text-xl font-bold text-primary">{viewingRecord.diagnosis}</h3>
+                    {viewingRecord.isAdmitted && (
+                        <Badge className="bg-red-500 text-white font-semibold flex items-center gap-1">
+                            Rawat Inap
+                        </Badge>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p className="text-muted-foreground">Tanggal Kunjungan</p>
+                        <p className="font-medium">{new Date(viewingRecord.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    </div>
+                    <div>
+                        <p className="text-muted-foreground flex items-center gap-1">
+                            <User className='w-4 h-4' /> Dokter Penanggung Jawab
+                        </p>
+                        <p className="font-medium">{viewingRecord.doctor || '-'}</p>
+                    </div>
+                </div>
+
+                <div className="space-y-3 p-3 bg-muted rounded-lg">
+                    <p>
+                        <span className="font-semibold text-muted-foreground">Keluhan Utama:</span> {viewingRecord.chiefComplaint}
+                    </p>
+                    <p>
+                        <span className="font-semibold text-muted-foreground">Obat Diberikan:</span> {viewingRecord.medication || '-'}
+                    </p>
+                    <p>
+                        <span className="font-semibold text-muted-foreground flex items-center gap-1">
+                            <Syringe className='w-4 h-4' /> Tindakan/Prosedur:
+                        </span> {viewingRecord.action || '-'}
+                    </p>
+                </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewingRecord(null)}>
+              Tutup
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
